@@ -9,9 +9,17 @@ class Vector:
     def x(self):
         return self.__x
 
+    @x.setter
+    def x(self, v):
+        self.__x = v
+
     @property
     def y(self):
         return self.__y
+
+    @y.setter
+    def y(self, v):
+        self.__y = v
 
     @property
     def tuple(self):
@@ -52,5 +60,3 @@ class Vector:
 
     def __str__(self):
         return f"Vector: x={self.__x} y={self.__y} length={self.length}, angle={degrees(self.polar360)}"
-
-

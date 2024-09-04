@@ -13,19 +13,12 @@ screen = pygame.display.set_mode((600, 400), SCALED | FULLSCREEN)
 pygame.display.set_caption("Fish - Testing Vectors")
 
 clock = pygame.time.Clock()
-flock = Flock([])
 
 def main():
-    global flock
+
+    flock = Flock([Fish(screen, f"./assets/fish/{random.choice(listdir("./assets/fish"))}", random.randrange(1, 5)/10) for i in range(10)])
+
     for i in range(10):
-        f = random.choice(listdir("./assets/fish"))
-        tmp = Fish(screen, f"./assets/fish/{f}",
-                   random.randrange(1, 5)/10,
-                   (random.randint(0, screen.get_width()),
-                    random.randint(0, screen.get_height())),
-                   random.randint(-1, 2),
-                   random.randint(0, 2)
-                   )
         bub = Bubble(screen,
             (
                 random.randint(0, screen.get_width()),
@@ -33,7 +26,6 @@ def main():
             ),
             random.randint(25, 125)/100
         )
-        flock.list.append(tmp)
         if not pygame.sprite.spritecollideany(bub, bubbleGrp):
             bub.add(bubbleGrp)
             if i % 3 == 0:
