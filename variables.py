@@ -1,10 +1,5 @@
-import random
 import pygame
 
-from vector import Vector
-from pygame.locals import *
-from math import degrees
-from os import listdir
 
 FPS = 60
 stdFPS = 45

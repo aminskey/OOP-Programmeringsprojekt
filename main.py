@@ -1,12 +1,10 @@
-import random
 import pygame
+import random
 
-from vector import Vector
 from pygame.locals import *
-from math import degrees
-from os import listdir
 from variables import *
 from fish import Fish, Bubble, Flock
+from os import listdir
 
 pygame.init()
 screen = pygame.display.set_mode((600, 400), SCALED | FULLSCREEN)
@@ -16,7 +14,9 @@ clock = pygame.time.Clock()
 
 def main():
 
-    flock = Flock([Fish(screen, f"./assets/fish/{random.choice(listdir("./assets/fish"))}", random.randrange(1, 5)/10) for i in range(10)])
+    flock = Flock([Fish(screen, f"./assets/fish/{random.choice(listdir('./assets/fish'))}", random.randrange(1, 5)/10) for i in range(10)])
+
+    global dTime
 
     for i in range(10):
         bub = Bubble(screen,
@@ -44,6 +44,12 @@ def main():
             if event.type == pygame.QUIT or event.type == pygame.KEYDOWN:
                 running = False
                 break
+
+        try:
+            dTime = stdFPS/clock.get_fps()
+            print(dTime)
+        except:
+            dTime = stdFPS/FPS
 
         flock.update()
         bubbleGrp.update()

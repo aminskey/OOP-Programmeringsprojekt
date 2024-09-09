@@ -1,4 +1,7 @@
 from variables import *
+from math import degrees
+import random
+from vector import Vector
 
 class Bubble(pygame.sprite.Sprite):
     def __init__(self, screen, pos, sizeF=1):
@@ -26,20 +29,26 @@ class Fish(pygame.sprite.Sprite):
         self.rect.topleft = (random.randint(0, screen.get_width()), random.randint(0, screen.get_height()))
 
         if v[0] != 0 and v[1] != 0:
-            self.__vel = Vector(v[0] * dTime, v[1] * dTime)
+            self.__vel = Vector(v[0], v[1])
         else:
-            self.__vel = Vector(random.randint(-2, 2)*dTime, random.randint(-2, 2)*dTime)
+            self.__vel = Vector(random.choice([-1, 1]), random.choice([-1, 1]))
     def borderHandle(self):
         if not isInRange(self.rect.centerx, self.base_image.get_width(), 0, self.screen.get_width()):
             self.__vel.x = -self.__vel.x
             self.vel.y *= random.randint(-3, 3) / 5
             self.rect.centerx += self.__vel.x * 2
+
         if not isInRange(self.rect.centery, self.base_image.get_height(), 0, self.screen.get_height()):
             self.__vel.y = -self.__vel.y
             self.rect.centery += self.__vel.y*2
+    def screenConfinement(self, d=30):
+        if not isInRange(self.rect.centerx, self.base_image.get_width() + d, 0, self.screen.get_width()):
+            self.__vel.x += 1-(self.rect.x/(d*10))
+        if not isInRange(self.rect.centery, self.base_image.get_height() + d, 0, self.screen.get_height()):
+            self.__vel.y += 1-(self.rect.y/(d*10))
 
     def update(self):
-        self.borderHandle()
+        self.screenConfinement()
         if self.__vel.x < 0:
             tmp = pygame.transform.flip(self.base_image, False, True)
         else:
@@ -49,8 +58,8 @@ class Fish(pygame.sprite.Sprite):
         if self.rect.centery < 0 or self.rect.centery > self.screen.get_height():
             self.rect.centery = self.screen.get_rect().centery
 
-        self.rect.centerx += self.__vel.x
-        self.rect.centery += self.__vel.y
+        self.rect.centerx += self.__vel.x * dTime
+        self.rect.centery += self.__vel.y * dTime
     def draw(self):
         self.screen.blit(self.image, self.rect)
 
@@ -66,6 +75,10 @@ class Fish(pygame.sprite.Sprite):
     def vel(self):
         return self.__vel
 
+    @vel.setter
+    def vel(self, others):
+        self.__vel = others
+
 class Flock:
     def __init__(self, l):
         self.list = l
@@ -73,6 +86,8 @@ class Flock:
     def update(self):
         for i in self.list:
             i.update()
+            print(i.vel.length, end=" ")
+        print(" ")
 
     def draw(self):
         for i in self.list:
