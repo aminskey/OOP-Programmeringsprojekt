@@ -14,7 +14,7 @@ clock = pygame.time.Clock()
 
 def main():
 
-    flock = Flock([Fish(screen, f"./assets/fish/{random.choice(listdir('./assets/fish'))}", random.randrange(1, 5)/10) for i in range(10)])
+    flock = Flock([Fish(screen, f"./assets/fish/{random.choice(listdir('./assets/fish'))}", random.randrange(1, 3)/10, vis=random.randint(20,30)) for i in range(50)])
 
     global dTime
 

@@ -58,5 +58,8 @@ class Vector:
     def __neg__(self):
         return Vector(-self.x, -self.y)
 
+    def __mod__(self, other):
+        return Vector(self.x%other, self.y%other)
+
     def __str__(self):
         return f"Vector: x={self.__x} y={self.__y} length={self.length}, angle={degrees(self.polar360)}"
