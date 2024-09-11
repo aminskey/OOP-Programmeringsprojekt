@@ -26,6 +26,7 @@ class Fish(pygame.sprite.Sprite):
         self.screen = screen
         self.base_image = pygame.transform.scale_by(pygame.image.load(image), sizeF)
         self.image = self.base_image.copy()
+        self.parent = None
 
         self.pos = Vector(random.randint(0, screen.get_width()), random.randint(0, screen.get_height()))
         self.center = self.pos + Vector(self.image.get_width()//2, self.image.get_height()//2)
@@ -58,14 +59,52 @@ class Fish(pygame.sprite.Sprite):
             self.pos.y = -self.image.get_height()
         elif self.pos.y < -self.image.get_height():
             self.pos.y = self.screen.get_height()
+
+    """
+        * Boids Algorithm
+            - Seperation
+            - Alignment
+            - Cohesion
+    """
+    # seperation part of the algorithm.
+    def separation(self, fishList: list, tooClose: int, separation_factor: float):
+        sepVec = Vector(0, 0)
+        count = 0
+
+        # iterate through fish in parent list
+        for fish in fishList:
+            if fish is not self:
+                # if the fish is too close
+                if dist(self.center, fish.pos) < tooClose:
+                    # get a vector describing the distance between each fish
+                    tmp = self.pos - fish.pos
+
+                    # normalize it
+                    tmp /= tmp.length
+
+                    # divide by the distance to weight it by the distance
+                    tmp /= dist(self.pos, fish.pos)
+
+                    # add the tmp vector to seperation vector
+                    sepVec += tmp
+
+                    # increment number of encountered fish
+                    count += 1
+        # if the count > 0 then divide sepVec by count
+        if count > 0:
+            sepVec /= count
+
+        # return the vector / factor to create proper weighting.
+        return sepVec * separation_factor
+
     def update(self):
-        self.screenConfinement()
+        #self.screenConfinement()
         #self.screenConfinement2()
-        #self.screenLoop()
+        self.screenLoop()
         self.center = self.pos + Vector(self.image.get_width() // 2, self.image.get_height() // 2)
 
-
-        #self.__vel = Vector(pygame.mouse.get_pos()[0] - self.pos.x, pygame.mouse.get_pos()[1] - self.pos.y)/500
+        self.__vel += Vector(pygame.mouse.get_pos()[0] - self.pos.x, pygame.mouse.get_pos()[1] - self.pos.y)/500
+        self.__vel += self.separation(self.parent.list, self.image.get_width(), 2)
 
         if self.__vel.x < 0:
             tmp = pygame.transform.flip(self.base_image, False, True)
@@ -80,7 +119,7 @@ class Fish(pygame.sprite.Sprite):
         """
 
         if self.__vel.length > 7:
-            self.__vel %= 3
+            self.__vel /= self.__vel.length*0.5
 
         self.pos += self.__vel * dTime
     def draw(self):
@@ -101,6 +140,8 @@ class Fish(pygame.sprite.Sprite):
 class Flock:
     def __init__(self, l):
         self.list = l
+        for fish in self.list:
+            fish.parent = self
 
     def update(self):
         for i in self.list:

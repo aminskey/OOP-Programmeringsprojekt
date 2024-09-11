@@ -1,5 +1,6 @@
 import pygame
 
+from math import sqrt
 
 FPS = 60
 stdFPS = 45
@@ -20,3 +21,6 @@ def isInRange(x, offset, min, max):
 
 def isInBounds(pos, offset, minPoint, maxPoint):
     return isInRange(pos[0], offset, minPoint[0], maxPoint[0]) and isInRange(pos[1], offset, minPoint[1], maxPoint[1])
+
+def dist(p1, p2):
+    return sqrt((p2.x - p1.x)**2 + (p2.y - p1.y)**2)
