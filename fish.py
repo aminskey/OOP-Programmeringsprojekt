@@ -31,6 +31,8 @@ class Fish(pygame.sprite.Sprite):
         self.pos = Vector(random.randint(0, screen.get_width()), random.randint(0, screen.get_height()))
         self.center = self.pos + Vector(self.image.get_width()//2, self.image.get_height()//2)
         self.vision = vis
+        self.maxSpeed = 7
+        self.maxForce = 10
 
         if v[0] != 0 and v[1] != 0:
             self.__vel = Vector(v[0], v[1])
@@ -67,20 +69,19 @@ class Fish(pygame.sprite.Sprite):
             - Cohesion
     """
     # seperation part of the algorithm.
-    def separation(self, fishList: list, tooClose: int, separation_factor: float):
+    def separation(self, tooClose: int, separation_factor: float):
         sepVec = Vector(0, 0)
         count = 0
 
         # iterate through fish in parent list
-        for fish in fishList:
+        for fish in self.parent.list:
             if fish is not self:
                 # if the fish is too close
                 if dist(self.center, fish.pos) < tooClose:
                     # get a vector describing the distance between each fish
                     tmp = self.pos - fish.pos
 
-                    # normalize it
-                    tmp /= tmp.length
+                    tmp = tmp.normalize()
 
                     # divide by the distance to weight it by the distance
                     tmp /= dist(self.pos, fish.pos)
@@ -97,14 +98,65 @@ class Fish(pygame.sprite.Sprite):
         # return the vector / factor to create proper weighting.
         return sepVec * separation_factor
 
+    def alignment(self, al_factor):
+        avg_vel = Vector(0, 0)
+        count = 0
+        for fish in self.parent.list:
+            if fish != self:
+                avg_vel += fish.vel
+                count += 1
+        if count > 0:
+            avg_vel /= count
+            avg_vel = avg_vel.normalize() * self.maxSpeed
+        return avg_vel * al_factor
+
+    def isIsolated(self, isol_dist):
+        for fish in self.parent.list:
+            if fish != self:
+                dist = self.pos - fish.pos
+                if dist.length < isol_dist:
+                    return False
+        return True
+
+    def steer(self, target: Vector):
+        des = target - self.pos
+        des = des.normalize() * self.maxSpeed
+
+        steer = des - self.__vel
+        steer.limit(self.maxForce) # self.maxForce
+
+        return steer
+
+    def cohesion(self, cohesion_factor: float, isol_dist: int):
+        if self.isIsolated(isol_dist):
+            return Vector(0, 0)
+        avg_pos = Vector(0, 0)
+        count = 0
+
+        for fish in self.parent.list:
+            if fish != self:
+                avg_pos += fish.pos
+                count += 1
+
+        if count > 0:
+            avg_pos /= count
+            v = self.pos - avg_pos
+            v = v.normalize() * self.maxSpeed
+            sVec = self.steer(self.vel - v)
+            sVec.limit(self.maxForce)
+            return sVec * cohesion_factor
+        return Vector(0, 0)
+
+
     def update(self):
-        #self.screenConfinement()
+        self.screenConfinement()
         #self.screenConfinement2()
-        self.screenLoop()
         self.center = self.pos + Vector(self.image.get_width() // 2, self.image.get_height() // 2)
 
-        self.__vel += Vector(pygame.mouse.get_pos()[0] - self.pos.x, pygame.mouse.get_pos()[1] - self.pos.y)/500
-        self.__vel += self.separation(self.parent.list, self.image.get_width(), 2)
+        self.__vel += self.separation(self.image.get_width(), 10)
+        self.__vel += self.alignment(0.05)
+        self.__vel += self.cohesion(0.01, 100)
+        #self.__vel -= (self.pos - Vector(self.screen.get_width()//2, self.screen.get_height()//2)).normalize() * 0.5
 
         if self.__vel.x < 0:
             tmp = pygame.transform.flip(self.base_image, False, True)
@@ -118,8 +170,8 @@ class Fish(pygame.sprite.Sprite):
             self.__vel %= 3
         """
 
-        if self.__vel.length > 7:
-            self.__vel /= self.__vel.length*0.5
+        if self.__vel.length > self.maxSpeed:
+            self.__vel /= self.__vel.length*0.25
 
         self.pos += self.__vel * dTime
     def draw(self):

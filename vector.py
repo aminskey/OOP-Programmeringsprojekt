@@ -43,6 +43,12 @@ class Vector:
     def dotprod(self, other):
         return self.__x * other.__x + self.__y * other.__y
 
+    def normalize(self):
+        return self/self.length
+
+    def limit(self, other: int):
+        return self/other
+
     def __add__(self, other):
         return Vector(self.__x+other.__x, self.__y+other.__y)
 
