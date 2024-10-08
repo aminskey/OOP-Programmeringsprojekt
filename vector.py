@@ -44,13 +44,17 @@ class Vector:
         return self.__x * other.__x + self.__y * other.__y
 
     def normalize(self):
-        return self/self.length
+        try:
+            return self/self.length
+        except:
+            return 1
 
     def limit(self, other: int):
-        return self/other
+        return self % other
 
     def __add__(self, other):
-        return Vector(self.__x+other.__x, self.__y+other.__y)
+        if isinstance(other, Vector):
+            return Vector(self.__x+other.__x, self.__y+other.__y)
 
     def __sub__(self, other):
         return Vector(self.__x - other.__x, self.__y - other.__y)
@@ -58,7 +62,7 @@ class Vector:
     def __mul__(self, other: int):
         return Vector(self.__x * other, self.__y * other)
 
-    def __truediv__(self, other: int):
+    def __truediv__(self, other: float):
         return Vector(self.__x/other, self.__y/other)
 
     def __neg__(self):

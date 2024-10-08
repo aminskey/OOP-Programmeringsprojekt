@@ -1,5 +1,3 @@
-import pygame.mouse
-
 from variables import *
 from math import degrees
 import random
@@ -33,6 +31,10 @@ class Fish(pygame.sprite.Sprite):
         self.vision = vis
         self.maxSpeed = 7
         self.maxForce = 10
+
+        self.sep = 10
+        self.alig = 0.05
+        self.coh = 0.01
 
         if v[0] != 0 and v[1] != 0:
             self.__vel = Vector(v[0], v[1])
@@ -69,12 +71,12 @@ class Fish(pygame.sprite.Sprite):
             - Cohesion
     """
     # seperation part of the algorithm.
-    def separation(self, tooClose: int, separation_factor: float):
+    def separation(self, list, tooClose: int, separation_factor: float):
         sepVec = Vector(0, 0)
         count = 0
 
         # iterate through fish in parent list
-        for fish in self.parent.list:
+        for fish in list:
             if fish is not self:
                 # if the fish is too close
                 if dist(self.center, fish.pos) < tooClose:
@@ -94,20 +96,21 @@ class Fish(pygame.sprite.Sprite):
         # if the count > 0 then divide sepVec by count
         if count > 0:
             sepVec /= count
-
-        # return the vector / factor to create proper weighting.
+            # return the vector / factor to create proper weighting.
         return sepVec * separation_factor
 
-    def alignment(self, al_factor):
+
+    def alignment(self, list, al_factor):
         avg_vel = Vector(0, 0)
         count = 0
-        for fish in self.parent.list:
+        for fish in list:
             if fish != self:
                 avg_vel += fish.vel
                 count += 1
         if count > 0:
             avg_vel /= count
             avg_vel = avg_vel.normalize() * self.maxSpeed
+
         return avg_vel * al_factor
 
     def isIsolated(self, isol_dist):
@@ -122,53 +125,46 @@ class Fish(pygame.sprite.Sprite):
         des = target - self.pos
         des = des.normalize() * self.maxSpeed
 
-        steer = des - self.__vel
-        steer.limit(self.maxForce) # self.maxForce
+        steerVec = des - self.__vel
+        steerVec.limit(self.maxForce) # self.maxForce
 
-        return steer
+        return steerVec
 
-    def cohesion(self, cohesion_factor: float, isol_dist: int):
+    def cohesion(self, list, cohesion_factor: float, isol_dist: int):
         if self.isIsolated(isol_dist):
             return Vector(0, 0)
-        avg_pos = Vector(0, 0)
+        avg_pos = Vector(self.screen.get_width()/2, self.screen.get_height()/2)
         count = 0
 
-        for fish in self.parent.list:
+        for fish in list:
             if fish != self:
                 avg_pos += fish.pos
                 count += 1
 
         if count > 0:
             avg_pos /= count
-            v = self.pos - avg_pos
+            v: Vector = self.pos - avg_pos
             v = v.normalize() * self.maxSpeed
-            sVec = self.steer(self.vel - v)
+            sVec : Vector = self.steer(v - self.vel)
             sVec.limit(self.maxForce)
             return sVec * cohesion_factor
-        return Vector(0, 0)
+        return self.pos
 
 
-    def update(self):
+    def update(self, *args, **kwargs):
         self.screenConfinement()
-        #self.screenConfinement2()
         self.center = self.pos + Vector(self.image.get_width() // 2, self.image.get_height() // 2)
 
-        self.__vel += self.separation(self.image.get_width(), 10)
-        self.__vel += self.alignment(0.05)
-        self.__vel += self.cohesion(0.01, 100)
-        #self.__vel -= (self.pos - Vector(self.screen.get_width()//2, self.screen.get_height()//2)).normalize() * 0.5
+        self.__vel += self.separation(self.parent.list, self.image.get_width(), self.sep)
+        self.__vel += self.alignment(self.parent.list, self.alig)
+        self.__vel += self.cohesion(self.parent.list, self.coh, 100)
 
         if self.__vel.x < 0:
             tmp = pygame.transform.flip(self.base_image, False, True)
         else:
             tmp = self.base_image.copy()
-        self.image = pygame.transform.rotate(tmp, -degrees(self.__vel.polar360))
 
-        """
-        if not isInBounds(self.center.tuple, 0, (0, 0), self.screen.get_size()):
-            self.pos = Vector(self.screen.get_rect().centerx, self.screen.get_rect().centery)
-            self.__vel %= 3
-        """
+        self.image = pygame.transform.rotate(tmp, -degrees(self.__vel.polar360))
 
         if self.__vel.length > self.maxSpeed:
             self.__vel /= self.__vel.length*0.25
@@ -189,15 +185,57 @@ class Fish(pygame.sprite.Sprite):
     def vel(self, others):
         self.__vel = others
 
+class FoodFish(Fish):
+    def __init__(self, screen, image, sizeF, v=(0, 0), vis=30):
+        super().__init__(screen, image, sizeF, v, vis)
+
+    def update(self, *args, **kwargs):
+        super().update(*args, **kwargs)
+        self.vel += self.separation(kwargs["sharkFlock"].list, self.image.get_width()*3, 1)
+
+class Shark(Fish):
+    def __init__(self, screen, sizeF, v=(0, 0), vis=30):
+        super().__init__(screen, "assets/fish/Sharks/shark_standard.png", sizeF, v, vis)
+        self.hungry = pygame.transform.scale(pygame.image.load("assets/fish/Sharks/shark_hungry.png"), self.base_image.get_size())
+        self.copy = self.base_image.copy()
+
+        self.mouth = Vector(0, 0)
+
+        self.maxSpeed = 4
+        self.maxForce = 3
+
+    def update(self, *args, **kwargs):
+
+        self.b_right = self.pos + Vector(self.image.get_width(), self.image.get_height())
+
+        if len(kwargs["foodFlock"].list) > 0:
+            if distToCenter(kwargs["foodFlock"], self.pos) < max(self.image.get_width(), self.image.get_height()) * 1.5:
+                self.base_image = self.hungry.copy()
+            else:
+                self.base_image = self.copy.copy()
+        else:
+            self.base_image = self.copy.copy()
+
+        for fish in kwargs["foodFlock"].list:
+            if isInBounds(fish.center.tuple, 0, (self.pos + Vector(self.image.get_width() - 10, 0)).tuple, self.b_right.tuple):
+                kwargs["foodFlock"].list.remove(fish)
+                tmp = Shark(self.screen, random.randint(5,10)/10)
+                tmp.parent = self.parent
+                self.parent.list.append(tmp)
+
+        super().update(*args, **kwargs)
+        self.vel += self.cohesion(kwargs["foodFlock"].list + self.parent.list, 0.01, 0)
+
+
 class Flock:
-    def __init__(self, l):
+    def __init__(self, l: list):
         self.list = l
         for fish in self.list:
             fish.parent = self
 
-    def update(self):
+    def update(self, *args, **kwargs):
         for i in self.list:
-            i.update()
+            i.update(*args, **kwargs)
             print(i.vel.length, end=" ")
         print(" ")
 
@@ -205,6 +243,24 @@ class Flock:
         for i in self.list:
             i.draw()
 
+    def setval(self, attr, val):
+        for i in self.list:
+            if hasattr(i, attr):
+                setattr(i, attr, val)
+
     @property
     def length(self):
         return len(self.list)
+
+
+def distToCenter(flock: Flock, pos: Vector):
+    avg_pos = Vector(0, 0)
+
+    for i in flock.list:
+        avg_pos += i.pos
+
+    if len(flock.list) > 0:
+        avg_pos /= len(flock.list)
+    else:
+        return 0
+    return dist(pos, avg_pos)
