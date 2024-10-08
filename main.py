@@ -77,6 +77,11 @@ def main():
 
         pygame_widgets.update(pygame.event.get())
 
+        if sharks.length > 5:
+            sharks.list.pop(0)
+        if flock.length >= 10:
+            flock.list.pop()
+
         for i in sliders:
             i.update()
         flock.update(sharkFlock=sharks)
@@ -84,11 +89,6 @@ def main():
         bubbleGrp.update()
         for s in sliders:
             flock.setval(s.text, s.slider.getValue())
-
-        if sharks.length > 5:
-            sharks.list.pop(0)
-        if flock.length >= 10:
-            flock.list.pop()
 
         screen.blit(bg, (0, 0))
         backBub.draw(screen)

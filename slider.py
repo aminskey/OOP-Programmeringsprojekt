@@ -4,8 +4,8 @@ from pygame_widgets.textbox import TextBox
 class Slider_w_labels:
     def __init__(self, screen, i, minV, maxV, step, text):
         self.text = text
-        self.slider = Slider(screen, 110, (i+1)*40, 200, 10, min=minV, max=maxV, step=step)
-        self.outputValue = TextBox(screen, 60, 30+i*40, 50, 25, fontsize=15)
+        self.slider = Slider(screen, 110, (i+1)*40, 100, 10, min=minV, max=maxV, step=step)
+        self.outputValue = TextBox(screen, 60, 30+i*40, 50, 25, fontsize=5)
         self.outputText = TextBox(screen, 10, 30+i*40, 50, 25, fontSize=15)
 
         self.outputValue.disable()
