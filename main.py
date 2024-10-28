@@ -80,7 +80,7 @@ def main():
         if sharks.length > 5:
             sharks.list.pop(0)
         if flock.length >= 10:
-            flock.list.pop()
+            flock.list.pop(-1)
 
         for i in sliders:
             i.update()

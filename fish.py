@@ -79,7 +79,7 @@ class Fish(pygame.sprite.Sprite):
         for fish in list:
             if fish is not self:
                 # if the fish is too close
-                if dist(self.center, fish.pos) < tooClose:
+                if dist(self.center, fish.center) < tooClose:
                     # get a vector describing the distance between each fish
                     tmp = self.pos - fish.pos
 
