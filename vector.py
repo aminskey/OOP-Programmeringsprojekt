@@ -49,7 +49,7 @@ class Vector:
         except:
             return 1
 
-    def limit(self, other: int):
+    def limit(self, other: float):
         return self % other
 
     def __add__(self, other):
@@ -59,7 +59,7 @@ class Vector:
     def __sub__(self, other):
         return Vector(self.__x - other.__x, self.__y - other.__y)
 
-    def __mul__(self, other: int):
+    def __mul__(self, other: float):
         return Vector(self.__x * other, self.__y * other)
 
     def __truediv__(self, other: float):
@@ -68,7 +68,7 @@ class Vector:
     def __neg__(self):
         return Vector(-self.x, -self.y)
 
-    def __mod__(self, other):
+    def __mod__(self, other: float):
         return Vector(self.x%other, self.y%other)
 
     def __str__(self):

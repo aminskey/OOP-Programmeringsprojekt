@@ -18,9 +18,8 @@ class Bubble(pygame.sprite.Sprite):
             self.rect.y = self.screen.get_height()
             self.rect.x = random.randint(0, self.screen.get_width())
 
-class Fish(pygame.sprite.Sprite):
+class Fish:
     def __init__(self, screen, image, sizeF, v=(0, 0), vis=30):
-        super().__init__()
         self.screen = screen
         self.base_image = pygame.transform.scale_by(pygame.image.load(image), sizeF)
         self.image = self.base_image.copy()
@@ -32,7 +31,7 @@ class Fish(pygame.sprite.Sprite):
         self.maxSpeed = 7
         self.maxForce = 10
 
-        self.sep = 10
+        self.sep = 5
         self.alig = 0.05
         self.coh = 0.01
 
@@ -41,13 +40,15 @@ class Fish(pygame.sprite.Sprite):
         else:
             self.__vel = Vector(random.choice([-1, 1]), random.choice([-1, 1]))
     def screenConfinement(self):
-        if not isInRange(self.center.x, self.base_image.get_width() + self.vision, 0, self.screen.get_width()):
-            self.__vel.x += 1 - (self.center.x/(self.vision*10))**2
-            #self.__vel.y += random.randint(-10, 10) % 3
-        if not isInRange(self.center.y, self.base_image.get_height() + self.vision, 0, self.screen.get_height()):
-            self.__vel.y += 1 - (self.center.y/(self.vision*10))**2
-            self.__vel.x += random.randint(-10, 10)/10
+        if self.pos.x < self.vision:
+            self.vel.x += (1 - self.pos.x/self.vision)**2
+        if self.pos.x - self.screen.get_width() > self.vision:
+            self.vel.x -= (1-(self.pos.x - self.screen.get_width())/self.vision)**2
 
+        if self.pos.y < self.vision:
+            self.vel.y += (1 - self.pos.y/self.vision)**2
+        if self.pos.y - self.screen.get_height() > self.vision:
+            self.vel.y -= (1 - (self.pos.y - self.screen.get_height())/self.vision)**2
     def screenConfinement2(self):
         if not isInBounds(self.pos.tuple, self.base_image.get_height(), (0, 0), self.screen.get_size()):
             self.__vel = Vector(pygame.mouse.get_pos()[0] - self.pos.x, pygame.mouse.get_pos()[1] - self.pos.y)
@@ -122,6 +123,7 @@ class Fish(pygame.sprite.Sprite):
         return True
 
     def steer(self, target: Vector):
+        # des is vector to destination.
         des = target - self.pos
         des = des.normalize() * self.maxSpeed
 
@@ -132,8 +134,9 @@ class Fish(pygame.sprite.Sprite):
 
     def cohesion(self, list, cohesion_factor: float, isol_dist: int):
         if self.isIsolated(isol_dist):
+            #return self.pos
             return Vector(0, 0)
-        avg_pos = Vector(self.screen.get_width()/2, self.screen.get_height()/2)
+        avg_pos = Vector(0, 0)
         count = 0
 
         for fish in list:
@@ -143,16 +146,20 @@ class Fish(pygame.sprite.Sprite):
 
         if count > 0:
             avg_pos /= count
+            avg_pos = (avg_pos - self.pos)*cohesion_factor
+            """
             v: Vector = self.pos - avg_pos
             v = v.normalize() * self.maxSpeed
             sVec : Vector = self.steer(v - self.vel)
             sVec.limit(self.maxForce)
             return sVec * cohesion_factor
-        return self.pos
+            """
+        return avg_pos
 
 
     def update(self, *args, **kwargs):
         self.screenConfinement()
+        #self.screenLoop()
         self.center = self.pos + Vector(self.image.get_width() // 2, self.image.get_height() // 2)
 
         self.__vel += self.separation(self.parent.list, self.image.get_width(), self.sep)
@@ -174,10 +181,6 @@ class Fish(pygame.sprite.Sprite):
         self.screen.blit(self.image, self.pos.tuple)
 
     @property
-    def angle(self):
-        return self.__vel.polar360
-
-    @property
     def vel(self):
         return self.__vel
 
@@ -196,25 +199,26 @@ class FoodFish(Fish):
 class Shark(Fish):
     def __init__(self, screen, sizeF, v=(0, 0), vis=30):
         super().__init__(screen, "assets/fish/Sharks/shark_standard.png", sizeF, v, vis)
-        self.hungry = pygame.transform.scale(pygame.image.load("assets/fish/Sharks/shark_hungry.png"), self.base_image.get_size())
-        self.copy = self.base_image.copy()
+        self.__hungry = pygame.transform.scale(pygame.image.load("assets/fish/Sharks/shark_hungry.png"), self.base_image.get_size())
+        self.__copy = self.base_image.copy()
 
-        self.mouth = Vector(0, 0)
+        self.b_right = Vector(0, 0)
 
         self.maxSpeed = 4
         self.maxForce = 3
 
     def update(self, *args, **kwargs):
 
+        # bottom_right position
         self.b_right = self.pos + Vector(self.image.get_width(), self.image.get_height())
 
         if len(kwargs["foodFlock"].list) > 0:
             if distToCenter(kwargs["foodFlock"], self.pos) < max(self.image.get_width(), self.image.get_height()) * 1.5:
-                self.base_image = self.hungry.copy()
+                self.base_image = self.__hungry.copy()
             else:
-                self.base_image = self.copy.copy()
+                self.base_image = self.__copy.copy()
         else:
-            self.base_image = self.copy.copy()
+            self.base_image = self.__copy.copy()
 
         for fish in kwargs["foodFlock"].list:
             if isInBounds(fish.center.tuple, 0, (self.pos + Vector(self.image.get_width() - 10, 0)).tuple, self.b_right.tuple):
@@ -224,7 +228,8 @@ class Shark(Fish):
                 self.parent.list.append(tmp)
 
         super().update(*args, **kwargs)
-        self.vel += self.cohesion(kwargs["foodFlock"].list + self.parent.list, 0.01, 0)
+        #self.vel += self.cohesion(kwargs["foodFlock"].list, 0.01, 10)
+        self.vel -= self.separation(kwargs["foodFlock"].list, 100, 10)
 
 
 class Flock:
@@ -243,7 +248,7 @@ class Flock:
         for i in self.list:
             i.draw()
 
-    def setval(self, attr, val):
+    def setattrall(self, attr, val):
         for i in self.list:
             if hasattr(i, attr):
                 setattr(i, attr, val)
